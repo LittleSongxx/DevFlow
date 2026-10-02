@@ -8,8 +8,6 @@ from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 
-pytestmark = pytest.mark.asyncio
-
 from app.api.routes.action_drafts import confirm_action_draft, create_action_draft
 from app.api.routes.ci import _augment_ci_context_with_snapshot, _build_ci_analysis_context
 from app.api.routes.code_graph import search_code_graph
@@ -166,6 +164,7 @@ def test_pr_snapshot_analysis_writes_code_graph_without_documents(tmp_path, monk
     assert db.query(CodeSymbol).filter(CodeSymbol.pr_id == pr.id, CodeSymbol.pr_number == 12).count() == 2
 
 
+@pytest.mark.asyncio
 async def test_pr_analysis_context_prefers_snapshot_docs_and_graph(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "vector_search_enabled", False)
     db = _db_session()
@@ -192,6 +191,7 @@ async def test_pr_analysis_context_prefers_snapshot_docs_and_graph(tmp_path, mon
     assert context["code_graph_impact"]["symbols"][0]["name"] == "handler"
 
 
+@pytest.mark.asyncio
 async def test_pr_analysis_keeps_patch_out_of_semantic_queries(monkeypatch) -> None:
     monkeypatch.setattr(settings, "vector_search_enabled", False)
     db = _db_session()
@@ -253,6 +253,7 @@ async def test_pr_analysis_keeps_patch_out_of_semantic_queries(monkeypatch) -> N
     assert any("Keep the retry idempotent." in query for query in semantic_calls)
 
 
+@pytest.mark.asyncio
 async def test_ci_context_uses_related_pr_snapshot_docs_and_graph(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "vector_search_enabled", False)
     db = _db_session()
@@ -278,6 +279,7 @@ async def test_ci_context_uses_related_pr_snapshot_docs_and_graph(tmp_path, monk
     assert context["code_graph_impact"]["symbols"][0]["name"] == "test_target"
 
 
+@pytest.mark.asyncio
 async def test_ci_analysis_redacts_semantic_queries_but_keeps_local_code_context(monkeypatch) -> None:
     monkeypatch.setattr(settings, "vector_search_enabled", False)
     db = _db_session()
