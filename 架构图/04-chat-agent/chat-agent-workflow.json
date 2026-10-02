@@ -1,0 +1,284 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "ChatAgent 对话与工具调用工作流",
+    "locale": "zh-CN",
+    "output": "架构图/04-chat-agent/chat-agent-workflow.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "ui",
+      "label": "用户与路由"
+    },
+    {
+      "id": "ctx",
+      "label": "上下文组装"
+    },
+    {
+      "id": "agent",
+      "label": "Agent 推理循环"
+    },
+    {
+      "id": "tools",
+      "label": "工具执行"
+    },
+    {
+      "id": "degrade",
+      "label": "降级与熔断",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "接收",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "assemble",
+      "label": "上下文组装",
+      "fromCol": 2,
+      "toCol": 2,
+      "variant": "emphasis"
+    },
+    {
+      "id": "reason",
+      "label": "推理与工具调用",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "settle",
+      "label": "输出与沉淀",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "groups": [],
+  "mainPath": [
+    "user-msg",
+    "route",
+    "evidence",
+    "skill",
+    "decide",
+    "act",
+    "tools"
+  ],
+  "nodes": [
+    {
+      "id": "user-msg",
+      "lane": "ui",
+      "col": 0,
+      "type": "external",
+      "label": "用户消息",
+      "sublabel": "POST /api/chat",
+      "width": 130
+    },
+    {
+      "id": "route",
+      "lane": "ui",
+      "col": 1,
+      "type": "frontend",
+      "label": "对话路由",
+      "sublabel": "会话定位 · 写入用户消息",
+      "width": 135
+    },
+    {
+      "id": "final",
+      "lane": "ui",
+      "col": 5,
+      "type": "frontend",
+      "label": "最终回答",
+      "sublabel": "SSE 流式返回",
+      "width": 125
+    },
+    {
+      "id": "evidence",
+      "lane": "ctx",
+      "col": 2,
+      "type": "backend",
+      "label": "证据重建与预检索",
+      "sublabel": "注入 [Related Evidence]",
+      "width": 145
+    },
+    {
+      "id": "persist",
+      "lane": "ctx",
+      "col": 5,
+      "type": "database",
+      "label": "持久化",
+      "sublabel": "消息 · 运行 · 记忆封存",
+      "width": 130
+    },
+    {
+      "id": "skill",
+      "lane": "agent",
+      "col": 2,
+      "type": "security",
+      "label": "Skill Runtime",
+      "sublabel": "显式/触发匹配 · 工具白名单",
+      "width": 145
+    },
+    {
+      "id": "llm-missing",
+      "lane": "degrade",
+      "col": 3,
+      "type": "backend",
+      "label": "LLM 未配置",
+      "sublabel": "本地证据拼接回答",
+      "width": 130,
+      "yOffset": -75
+    },
+    {
+      "id": "decide",
+      "lane": "agent",
+      "col": 3,
+      "type": "backend",
+      "label": "model_decision",
+      "sublabel": "LLM 决策 · ≤12 步",
+      "width": 135
+    },
+    {
+      "id": "act",
+      "lane": "agent",
+      "col": 4,
+      "type": "backend",
+      "label": "tool_action",
+      "sublabel": "顺序执行工具调用",
+      "width": 135
+    },
+    {
+      "id": "guard",
+      "lane": "degrade",
+      "col": 3,
+      "type": "security",
+      "label": "循环保护",
+      "sublabel": "溢出重试 · 重复熔断",
+      "width": 130,
+      "yOffset": 75
+    },
+    {
+      "id": "tools",
+      "lane": "tools",
+      "col": 5,
+      "type": "messagebus",
+      "label": "原生工具执行",
+      "sublabel": "工作区 · RAG · 专项 · 安全 · 工作流",
+      "width": 170
+    }
+  ],
+  "edges": [
+    {
+      "id": "user-route",
+      "from": "user-msg",
+      "to": "route",
+      "role": "main"
+    },
+    {
+      "id": "route-evidence",
+      "from": "route",
+      "to": "evidence",
+      "role": "main",
+      "label": "压缩预留"
+    },
+    {
+      "id": "evidence-skill",
+      "from": "evidence",
+      "to": "skill",
+      "role": "main",
+      "label": "系统上下文"
+    },
+    {
+      "id": "skill-llm-missing",
+      "from": "skill",
+      "to": "llm-missing",
+      "role": "branch",
+      "variant": "security",
+      "label": "LLM 未配置"
+    },
+    {
+      "id": "skill-decide",
+      "from": "skill",
+      "to": "decide",
+      "role": "main",
+      "label": "skill 指令"
+    },
+    {
+      "id": "decide-guard",
+      "from": "decide",
+      "to": "guard",
+      "role": "error",
+      "variant": "security",
+      "label": "溢出 / 重复"
+    },
+    {
+      "id": "decide-act",
+      "from": "decide",
+      "to": "act",
+      "role": "main",
+      "label": "tool_calls"
+    },
+    {
+      "id": "act-tools",
+      "from": "act",
+      "to": "tools",
+      "role": "main",
+      "label": "逐个执行工具"
+    },
+    {
+      "id": "decide-final",
+      "from": "decide",
+      "to": "final",
+      "role": "main",
+      "label": "无更多工具调用"
+    },
+    {
+      "id": "final-persist",
+      "from": "final",
+      "to": "persist",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "推理循环",
+      "items": [
+        "LangGraph 三节点图：model_decision →（有 tool_calls）→ tool_action → 回到决策；recursion_limit = max_steps×8+20，默认 12 步",
+        "模型不再发起工具调用即产出最终回答；同指纹工具调用超过 2 次触发 repeated_tool_call 熔断",
+        "工具错误分 8 类：仅 timeout / rate_limited / transient_network 允许重试 1 次，safety、report、workflow 工具一律不重试"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "上下文工程",
+      "items": [
+        "EvidenceStore 重建证据库后预检索 8 条注入 [Related Evidence]；Agent 可改写查询连续补查并交叉验证",
+        "每个工具结果按 observation 预算截断，完整观察封存于 state、仅投影进 prompt；溢出时一次性激进压缩重试",
+        "渐进压缩分 normal / auto_compact / aggressive / manual_path 多级计划，连续失败触发熔断保护"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "安全与沉淀",
+      "items": [
+        "写操作关键词命中后由 SafetyAgent 生成 ActionDraft（pending_confirmation），MVP 阶段绝不直接写回 GitHub",
+        "成功路径持久化 assistant 消息（含 agent_events / 模型用量 / 压缩统计）、AgentRun，再由 SessionSealer 封存会话并抽取记忆候选",
+        "记忆抽取失败回退 fallback 记忆并标记 sealed_with_warnings；负反馈异步通知飞书，失败不丢反馈"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "降级路径",
+      "items": [
+        "LLM 未配置：跳过推理循环，本地拼接预检索证据回答；无证据则 completion.status = blocked",
+        "向量检索不可用（pgvector 未就绪 / 显式禁用）：混合检索降级 BM25 关键词召回，预检索降级为证据关键词打分",
+        "请求级异常：SSE 回滚并写入 route=error 消息与 AgentRun，错误文本经 sanitize_error 脱敏"
+      ]
+    }
+  ]
+}

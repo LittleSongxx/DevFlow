@@ -1,0 +1,62 @@
+# Local environment
+.env
+.env.*
+!.env.example
+.mcp.json
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/.next-dev/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+tmp/
+.codex_tmp/
+.data/
+.devflow/
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.log
+backend/.data/
+backend/devflow_demo.db
+devflow_demo.db
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ZCode 会话与计划
+.zcode/
+
+# archify 交付副产物（保留 *.html 交互图、*.json 候选与 page/index 页面）
+架构图/**/*.finalize.json
+架构图/**/*.finalize-summary.json
+架构图/**/*.browser-check.json
+架构图/**/*.delivery.json
+架构图/**/*.delivery-pending.json
+架构图/**/.archify-*
+架构图/**/review-*/
+架构图/**/*-dir/
+架构图/**/*-dir-*/
+架构图/captures/

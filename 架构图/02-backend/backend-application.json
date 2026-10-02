@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "FastAPI 后端应用架构",
+    "locale": "zh-CN",
+    "output": "架构图/02-backend/backend-application.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "HTTP 请求",
+      "sublabel": "浏览器 / GitHub Webhook",
+      "pos": [
+        20,
+        140
+      ],
+      "size": [
+        130,
+        70
+      ]
+    },
+    {
+      "id": "middleware",
+      "type": "security",
+      "label": "中间件层",
+      "sublabel": "X-API-Key 验证 · CORS",
+      "tag": "/health /docs /webhooks 豁免",
+      "pos": [
+        555,
+        140
+      ],
+      "size": [
+        180,
+        70
+      ]
+    },
+    {
+      "id": "chat-router",
+      "type": "backend",
+      "label": "对话路由",
+      "sublabel": "/api/chat · SSE 流式",
+      "pos": [
+        150,
+        340
+      ],
+      "size": [
+        160,
+        70
+      ]
+    },
+    {
+      "id": "analysis-router",
+      "type": "backend",
+      "label": "分析路由",
+      "sublabel": "/issues /pull_requests /ci",
+      "pos": [
+        350,
+        340
+      ],
+      "size": [
+        160,
+        70
+      ]
+    },
+    {
+      "id": "rag-router",
+      "type": "backend",
+      "label": "RAG 路由",
+      "sublabel": "/api/rag · 知识库/问答",
+      "pos": [
+        550,
+        340
+      ],
+      "size": [
+        160,
+        70
+      ]
+    },
+    {
+      "id": "evals-router",
+      "type": "backend",
+      "label": "评测路由",
+      "sublabel": "/api/evals · 后台任务",
+      "pos": [
+        750,
+        340
+      ],
+      "size": [
+        160,
+        70
+      ]
+    },
+    {
+      "id": "system-router",
+      "type": "backend",
+      "label": "治理与集成路由",
+      "sublabel": "草稿 · Webhook · 图谱 · 周报",
+      "pos": [
+        950,
+        340
+      ],
+      "size": [
+        190,
+        70
+      ]
+    },
+    {
+      "id": "agents-service",
+      "type": "backend",
+      "label": "Agent 服务",
+      "sublabel": "ChatAgent · 编排器 · 专项 Agent",
+      "tag": "原生工具调用",
+      "pos": [
+        220,
+        580
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "rag-service",
+      "type": "backend",
+      "label": "RAG 服务",
+      "sublabel": "切片 · 嵌入 · 混合检索 · 重排",
+      "pos": [
+        460,
+        580
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "memory-service",
+      "type": "backend",
+      "label": "记忆与上下文",
+      "sublabel": "Assembler · Sealer · 渐进压缩",
+      "pos": [
+        700,
+        580
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "sync-service",
+      "type": "backend",
+      "label": "同步与索引",
+      "sublabel": "repos_sync · 代码图 · 知识图谱",
+      "pos": [
+        950,
+        580
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "llm-client",
+      "type": "cloud",
+      "label": "LLM 客户端",
+      "sublabel": "OpenAI 兼容 · chat_json 结构化输出",
+      "pos": [
+        180,
+        840
+      ],
+      "size": [
+        170,
+        70
+      ]
+    },
+    {
+      "id": "github-client",
+      "type": "cloud",
+      "label": "GitHub 客户端",
+      "sublabel": "httpx · 主机白名单 · 解密 token",
+      "pos": [
+        420,
+        840
+      ],
+      "size": [
+        170,
+        70
+      ]
+    },
+    {
+      "id": "mcp-server",
+      "type": "messagebus",
+      "label": "MCP 记忆服务器",
+      "sublabel": "独立子进程 · stdio",
+      "pos": [
+        660,
+        840
+      ],
+      "size": [
+        180,
+        70
+      ]
+    },
+    {
+      "id": "db-layer",
+      "type": "database",
+      "label": "SQLAlchemy 数据层",
+      "sublabel": "32 张 ORM 表 · 启动建表迁移",
+      "pos": [
+        900,
+        840
+      ],
+      "size": [
+        200,
+        70
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "API 路由层 · 18 个 Router",
+      "wraps": [
+        "chat-router",
+        "analysis-router",
+        "rag-router",
+        "evals-router",
+        "system-router"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "领域服务层 · app/services",
+      "wraps": [
+        "agents-service",
+        "rag-service",
+        "memory-service",
+        "sync-service"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "client-middleware",
+      "from": "client",
+      "to": "middleware",
+      "label": "HTTP /api/*",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mw-chat",
+      "from": "middleware",
+      "to": "chat-router"
+    },
+    {
+      "id": "mw-analysis",
+      "from": "middleware",
+      "to": "analysis-router"
+    },
+    {
+      "id": "mw-rag",
+      "from": "middleware",
+      "to": "rag-router"
+    },
+    {
+      "id": "mw-evals",
+      "from": "middleware",
+      "to": "evals-router"
+    },
+    {
+      "id": "mw-system",
+      "from": "middleware",
+      "to": "system-router"
+    },
+    {
+      "id": "chat-agents",
+      "from": "chat-router",
+      "to": "agents-service",
+      "label": "消息 + 工具上下文",
+      "variant": "emphasis"
+    },
+    {
+      "id": "chat-memory",
+      "from": "chat-router",
+      "to": "memory-service",
+      "label": "会话与记忆读写"
+    },
+    {
+      "id": "analysis-agents",
+      "from": "analysis-router",
+      "to": "agents-service",
+      "label": "专项 Agent 分析"
+    },
+    {
+      "id": "rag-ragservice",
+      "from": "rag-router",
+      "to": "rag-service",
+      "variant": "emphasis",
+      "label": "上传 / 检索"
+    },
+    {
+      "id": "evals-agents",
+      "from": "evals-router",
+      "to": "agents-service",
+      "label": "隔离会话评测"
+    },
+    {
+      "id": "system-sync",
+      "from": "system-router",
+      "to": "sync-service",
+      "label": "Webhook 触发同步"
+    },
+    {
+      "id": "agents-llm",
+      "from": "agents-service",
+      "to": "llm-client",
+      "label": "工具调用循环",
+      "variant": "emphasis"
+    },
+    {
+      "id": "memory-mcp",
+      "from": "memory-service",
+      "to": "mcp-server",
+      "label": "stdio"
+    },
+    {
+      "id": "memory-db",
+      "from": "memory-service",
+      "to": "db-layer"
+    },
+    {
+      "id": "rag-db",
+      "from": "rag-service",
+      "to": "db-layer"
+    },
+    {
+      "id": "sync-github",
+      "from": "sync-service",
+      "to": "github-client",
+      "label": "REST 拉取"
+    },
+    {
+      "id": "sync-db",
+      "from": "sync-service",
+      "to": "db-layer",
+      "label": "唯一键 upsert"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "请求管道",
+      "items": [
+        "ApiKeyMiddleware 保护全部 /api/*：X-API-Key 或 Bearer 头，hmac.compare_digest 比较",
+        "FastAPI lifespan 启动时自动建表（advisory lock 防并发）、清扫遗留后台任务、启动周期同步",
+        "18 个 Router 按域挂载：repos、conversations、issues、pull_requests、ci、chat、feedback、action_drafts、reports、search、skills、knowledge、project_index、rag、code_graph、evaluations、webhooks、workspaces"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "领域服务",
+      "items": [
+        "Agent 服务：ChatAgent（LangGraph 三节点循环）+ WorkflowOrchestrator + Issue/PR/CI/报告/安全/推荐/检索 7 个专项 Agent",
+        "RAG 服务：段落感知切片、批量嵌入、向量+BM25 混合检索、qwen3-rerank 重排、answer gate",
+        "记忆与上下文：ContextAssembler 预检索、SessionSealer 会话封存、ProgressiveContextManager 渐进压缩，记忆工具经 MCP 子进程提供"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "基础设施客户端",
+      "items": [
+        "LLM 客户端封装 OpenAI 兼容接口，chat_json + Pydantic 校验保证结构化输出，失败回退规则实现",
+        "GitHub 客户端强制 https + API 主机白名单，全局 token 只发给 api.github.com，重定向时剥离凭证",
+        "SQLAlchemy 数据层承载 32 张表与 pgvector 向量列；Alembic 迁移在启动时自动执行（见下图 1）"
+      ]
+    }
+  ]
+}

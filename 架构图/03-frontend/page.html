@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>前端结构 · DevFlow AI 架构图集</title>
+<style>
+:root{--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#f8fafc;--card:#ffffff;--accent:#2563eb;--chip:#eff6ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+header.site{background:#0b1220;color:#e2e8f0;padding:26px 32px}
+header.site h1{margin:0 0 6px;font-size:22px}
+header.site p{margin:0;color:#94a3b8;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:26px 24px 60px}
+nav.crumbs{font-size:13px;color:var(--sub);margin-bottom:14px}
+nav.crumbs a{color:var(--accent);text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;text-decoration:none;color:var(--ink);transition:box-shadow .15s}
+a.card:hover{box-shadow:0 6px 20px rgba(37,99,235,.12)}
+a.card h3{margin:0 0 6px;font-size:16px}
+a.card .kind{display:inline-block;font-size:12px;color:var(--accent);background:var(--chip);border-radius:999px;padding:1px 10px;margin-bottom:8px}
+a.card p{margin:0;font-size:13px;color:var(--sub)}
+section.block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:18px 0}
+section.block h2{margin:0 0 4px;font-size:18px}
+section.block .meta{font-size:12px;color:var(--sub);margin-bottom:12px}
+section.block p,section.block li{font-size:14px}
+ul.evidence{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--sub)}
+ul.evidence li{margin:2px 0}
+ul.evidence code, p code, li code{background:#f1f5f9;border-radius:4px;padding:0 5px;font-size:12.5px}
+.frame-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin-top:10px}
+.frame-wrap iframe{width:100%;height:640px;border:0;display:block}
+.open-line{font-size:13px;margin-top:8px}
+.open-line a{color:var(--accent)}
+.rel{font-size:13px;color:var(--sub)}
+.rel a{color:var(--accent);text-decoration:none;margin-right:12px}
+footer{max-width:1180px;margin:0 auto;padding:0 24px 40px;color:#94a3b8;font-size:12px}
+@media (max-width:720px){.frame-wrap iframe{height:480px}}
+</style></head>
+<body>
+<header class="site"><h1>前端结构</h1><p>Next.js App Router 页面地图与统一 API 客户端</p></header>
+<main>
+ <nav class="crumbs"><a href="../index.html">← 架构图集索引</a></nav>
+ <section class="block">
+  <h2>这个部分负责什么</h2>
+  <p>Next.js standalone 前端的页面组织：AppShell 提供 9 项导航；Workspace 首页承担主对话界面；lib/api.ts 统一注入 X-API-Key、解析 SSE 帧并归一错误。</p>
+  <h2 style="font-size:15px;margin-top:16px">关键机制</h2>
+  <ul><li>构建期通过 ARG 注入 NEXT_PUBLIC_API_BASE_URL / NEXT_PUBLIC_API_KEY（修改 Key 需重建镜像）。</li><li>apiPostStream 逐帧解析 event:/data: 实现 SSE 流式对话；throwApiError 兼容 FastAPI detail 与 pydantic 数组错误。</li><li>Dockerfile 三阶段构建，runner 仅携带 standalone 产物并以非 root 用户运行。</li></ul>
+  <h2 style="font-size:15px;margin-top:16px">源码证据</h2>
+  <ul class="evidence"><li><code>frontend/lib/api.ts</code> L1</li><li><code>frontend/components/layout/app-shell.tsx</code> L3</li><li><code>frontend/Dockerfile</code></li></ul>
+ </section>
+ 
+ <section class="block">
+  <h2>Next.js 前端结构</h2>
+  <div class="meta">图型 architecture · archify showcase 校验通过（validate / deliver / check / browser-check 四门）</div>
+  <div class="frame-wrap"><iframe src="frontend-structure.html" title="Next.js 前端结构"></iframe></div>
+  <div class="open-line">全屏交互（主题切换 / 搜索 / 聚焦）：<a href="frontend-structure.html" target="_blank">frontend-structure.html</a></div>
+ </section>
+ <section class="block"><h2 style="font-size:15px">相关部分</h2><p class="rel"><a href="../01-overview/page.html">系统总览</a><a href="../08-evals/page.html">评测中心页面</a></p></section>
+</main>
+<footer>DevFlow AI 架构图集 · 由 archify 逐图校验的独立交互图 + 手工编排的说明页组成</footer>
+</body></html>

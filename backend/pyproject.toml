@@ -1,0 +1,45 @@
+[project]
+name = "devflow-ai-backend"
+version = "0.1.0"
+description = "DevFlow AI backend: GitHub PR/Issue AI agent with RAG"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.10.1",
+    "SQLAlchemy==2.0.36",
+    "psycopg[binary]==3.2.3",
+    "alembic==1.14.1",
+    "httpx==0.28.1",
+    "langchain==1.2.17",
+    "langchain-community==0.4.1",
+    "langgraph==1.1.10",
+    "langchain-openai==1.2.1",
+    "ragas==0.4.3",
+    "openai==2.53.0",
+    "datasets==4.0.0",
+    "python-dotenv==1.0.1",
+    "PyYAML==6.0.3",
+    "cryptography==44.0.0",
+    "python-multipart==0.0.20",
+    "pypdf==5.1.0",
+    "python-docx==1.1.2",
+]
+
+[project.optional-dependencies]
+# 本地 Qwen Embedding（sentence-transformers）；默认走 DashScope API，无需安装。
+local-embedding = [
+    "sentence-transformers>=5.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["app/tests"]
+asyncio_default_fixture_loop_scope = "function"

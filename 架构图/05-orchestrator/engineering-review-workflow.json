@@ -1,0 +1,287 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "多 Agent 工程审查工作流",
+    "locale": "zh-CN",
+    "output": "架构图/05-orchestrator/engineering-review-workflow.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "entry",
+      "label": "触发入口"
+    },
+    {
+      "id": "exec",
+      "label": "规划与并行执行"
+    },
+    {
+      "id": "quality",
+      "label": "质量闭环"
+    },
+    {
+      "id": "settle",
+      "label": "综合与落库"
+    },
+    {
+      "id": "exception",
+      "label": "失败处理",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "label": "触发",
+      "fromCol": 0,
+      "toCol": 0
+    },
+    {
+      "id": "p2",
+      "label": "规划",
+      "fromCol": 1,
+      "toCol": 1,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p3",
+      "label": "并行执行",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p4",
+      "label": "质量闭环",
+      "fromCol": 4,
+      "toCol": 4
+    },
+    {
+      "id": "p5",
+      "label": "综合落库",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "chat-tool",
+    "planner",
+    "orchestrator",
+    "domain-tasks",
+    "observer",
+    "synthesis",
+    "persist"
+  ],
+  "nodes": [
+    {
+      "id": "chat-tool",
+      "lane": "entry",
+      "col": 0,
+      "type": "backend",
+      "label": "ChatAgent 工具调用",
+      "sublabel": "run_engineering_review",
+      "width": 150,
+      "yOffset": -60
+    },
+    {
+      "id": "plan-api",
+      "lane": "entry",
+      "col": 0,
+      "type": "frontend",
+      "label": "确认式入口",
+      "sublabel": "POST /chat/plan 预览",
+      "width": 150,
+      "yOffset": 60
+    },
+    {
+      "id": "planner",
+      "lane": "exec",
+      "col": 1,
+      "type": "backend",
+      "label": "PlannerAgent",
+      "sublabel": "规则式组装 WorkflowSpec",
+      "width": 150
+    },
+    {
+      "id": "orchestrator",
+      "lane": "exec",
+      "col": 2,
+      "type": "backend",
+      "label": "WorkflowOrchestrator",
+      "sublabel": "DAG 就绪判定 · 并行执行",
+      "width": 165
+    },
+    {
+      "id": "repo-health",
+      "lane": "exec",
+      "col": 3,
+      "type": "database",
+      "label": "仓库健康基线",
+      "sublabel": "前置任务 · 计数汇总",
+      "width": 145,
+      "yOffset": -80
+    },
+    {
+      "id": "domain-tasks",
+      "lane": "exec",
+      "col": 3,
+      "type": "cloud",
+      "label": "领域任务并行",
+      "sublabel": "Issue / PR / CI / RAG / 安全",
+      "width": 145,
+      "yOffset": 80
+    },
+    {
+      "id": "observer",
+      "lane": "quality",
+      "col": 4,
+      "type": "security",
+      "label": "ObserverAgent",
+      "sublabel": "六类检查 · 置信度",
+      "width": 150
+    },
+    {
+      "id": "synthesis",
+      "lane": "settle",
+      "col": 5,
+      "type": "backend",
+      "label": "SynthesisAgent",
+      "sublabel": "统一决策备忘录",
+      "width": 145,
+      "yOffset": -70
+    },
+    {
+      "id": "persist",
+      "lane": "settle",
+      "col": 5,
+      "type": "database",
+      "label": "落库",
+      "sublabel": "WorkflowRun + TaskRun",
+      "width": 145,
+      "yOffset": 70
+    },
+    {
+      "id": "task-fail",
+      "lane": "exception",
+      "col": 4,
+      "type": "security",
+      "label": "失败与跳过",
+      "sublabel": "超时 / 依赖级联 / 未注册",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "chat-planner",
+      "from": "chat-tool",
+      "to": "planner",
+      "role": "main",
+      "label": "用户消息"
+    },
+    {
+      "id": "planapi-planner",
+      "from": "plan-api",
+      "to": "planner",
+      "role": "branch",
+      "label": "确认后执行"
+    },
+    {
+      "id": "planner-orch",
+      "from": "planner",
+      "to": "orchestrator",
+      "role": "main",
+      "label": "WorkflowSpec"
+    },
+    {
+      "id": "orch-health",
+      "from": "orchestrator",
+      "to": "repo-health",
+      "role": "branch",
+      "label": "前置"
+    },
+    {
+      "id": "orch-tasks",
+      "from": "orchestrator",
+      "to": "domain-tasks",
+      "role": "main",
+      "label": "asyncio.gather"
+    },
+    {
+      "id": "tasks-observer",
+      "from": "domain-tasks",
+      "to": "observer",
+      "role": "main",
+      "label": "task_results",
+      "fromSide": "right"
+    },
+    {
+      "id": "observer-synthesis",
+      "from": "observer",
+      "to": "synthesis",
+      "role": "main",
+      "label": "findings + 置信度"
+    },
+    {
+      "id": "synthesis-persist",
+      "from": "synthesis",
+      "to": "persist",
+      "role": "main"
+    },
+    {
+      "id": "tasks-fail",
+      "from": "domain-tasks",
+      "to": "task-fail",
+      "role": "error",
+      "variant": "security",
+      "label": "error / timeout / skipped",
+      "fromSide": "bottom"
+    },
+    {
+      "id": "observer-replan",
+      "from": "observer",
+      "to": "planner",
+      "role": "return",
+      "variant": "dashed",
+      "label": "重规划 ≤2 轮"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "规划",
+      "items": [
+        "PlannerAgent 是规则式（非 LLM）：按上下文信号组装 WorkflowSpec——任务声明 claim（target_type/target_id/allowed_sources/write_intent）、依赖关系、验收标准 6 条、max_parallel_tasks 默认 3（1-8）",
+        "有仓库必加 repo_health 基线任务；提及 Issue/PR/CI/历史/写意图时分别追加对应领域任务，全部依赖 repo_health；仅基线时按 PR > CI > Issue 兜底补一",
+        "另一入口 POST /chat/plan 先出 spec 预览，人工确认后经 /chat/plan/execute/stream 以 SSE 执行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "并行执行",
+      "items": [
+        "依赖全部完成的任务判定就绪，asyncio.gather 分批并行，批大小上限 max_parallel_tasks；测试确认两任务并行耗时叠加",
+        "六类任务能力：repo_health / issue_analysis / pr_review / ci_debug / rag_search / safety_review；每个任务 asyncio.wait_for 超时控制，超时记 error_kind=timeout",
+        "依赖失败或被跳过的任务级联标记 skipped（dependency_failed）；未注册 runner 同样 skipped"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "质量闭环",
+      "items": [
+        "ObserverAgent 六类检查：任务错误、证据缺失（evidence_gap）、低置信度（<0.5）、合并门禁（CI 阻塞 / PR 阻塞 / 跨 Agent 冲突）、负责人与团队缺失、安全确认缺失",
+        "置信度 = 成功任务均值 − 0.2×blocker − 0.05×warning，夹在 [0.1, 0.95]；存在 blocker 或 spec 要求时 human_review_required = true",
+        "可修复 findings / 任何 error / 置信度 <0.45 触发重规划：Planner 增补 safety/rag/ci 任务，最多 2 轮，已成功结果复用"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "综合与落库",
+      "items": [
+        "SynthesisAgent 规则式拼装决策备忘录：结论（暂缓合并 / 只生成草稿 / 可推进）+ 任务图 + 各 Agent 摘要 + 下一步（去重限 6 条）",
+        "持久化 AgentWorkflowRun（status: success | error）与逐任务 AgentTaskRun；GET /chat/workflow-runs 可回查",
+        "SSE 路径流式回放 workflow_spec / workflow_task_result / workflow_observer_result 事件"
+      ]
+    }
+  ]
+}

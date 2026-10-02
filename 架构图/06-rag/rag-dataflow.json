@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RAG 知识库数据流水线",
+    "locale": "zh-CN",
+    "output": "架构图/06-rag/rag-dataflow.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1068,
+      620
+    ]
+  },
+  "stages": [
+    {
+      "label": "知识来源"
+    },
+    {
+      "label": "摄取与切片"
+    },
+    {
+      "label": "索引存储"
+    },
+    {
+      "label": "混合检索"
+    },
+    {
+      "label": "证据与回答"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "src-upload",
+      "type": "frontend",
+      "label": "上传知识",
+      "sublabel": "MD / PDF / DOCX",
+      "stage": 0,
+      "row": 0,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "src-sync",
+      "type": "cloud",
+      "label": "同步数据",
+      "sublabel": "Issue / PR / 失败日志",
+      "stage": 0,
+      "row": 1,
+      "width": 128,
+      "tag": "日志脱敏",
+      "height": 48
+    },
+    {
+      "id": "src-doc",
+      "type": "database",
+      "label": "文档与记忆",
+      "sublabel": "README · 批准记忆",
+      "stage": 0,
+      "row": 2,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "dedup-extract",
+      "type": "backend",
+      "label": "去重与抽取",
+      "sublabel": "SHA-256 去重",
+      "stage": 1,
+      "row": 0,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "chunk-embed",
+      "type": "backend",
+      "label": "切片与嵌入",
+      "sublabel": "切片 · 批量嵌入",
+      "stage": 1,
+      "row": 1,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "sync-index",
+      "type": "backend",
+      "label": "同步源组稿",
+      "sublabel": "脱敏 · 截断组稿",
+      "stage": 1,
+      "row": 2,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "pg-doc",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "文档行 + pgvector 向量列",
+      "stage": 2,
+      "row": 1,
+      "width": 140,
+      "height": 48,
+      "tag": "事实源 · 单库同事务"
+    },
+    {
+      "id": "hybrid",
+      "type": "backend",
+      "label": "混合检索",
+      "sublabel": "向量+BM25 融合",
+      "stage": 3,
+      "row": 1,
+      "width": 128,
+      "tag": "去近重复",
+      "height": 48
+    },
+    {
+      "id": "rerank",
+      "type": "cloud",
+      "label": "重排",
+      "sublabel": "qwen3 · 启发式回退",
+      "stage": 3,
+      "row": 2,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "filter",
+      "type": "backend",
+      "label": "阈值与扩展",
+      "sublabel": "≥0.8 · 父块拼接",
+      "stage": 3,
+      "row": 3,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "Answer Gate",
+      "sublabel": "可答 / 拒答 / 澄清",
+      "stage": 4,
+      "row": 1,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "answer",
+      "type": "backend",
+      "label": "引用回答",
+      "sublabel": "[1][2] 编号引用",
+      "stage": 4,
+      "row": 2,
+      "width": 128,
+      "height": 48
+    },
+    {
+      "id": "consumers",
+      "type": "frontend",
+      "label": "两路消费",
+      "sublabel": "预检索 + Agent 补查",
+      "stage": 3,
+      "row": 0,
+      "width": 128,
+      "height": 48
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-upload",
+      "from": "src-upload",
+      "to": "dedup-extract",
+      "label": "文件字节",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-sync",
+      "from": "src-sync",
+      "to": "sync-index",
+      "label": "结构化文本",
+      "route": "straight"
+    },
+    {
+      "id": "f-doc",
+      "from": "src-doc",
+      "to": "sync-index",
+      "label": "文档/记忆",
+      "route": "straight",
+      "labelAt": [
+        236,
+        439
+      ]
+    },
+    {
+      "id": "f-extract-chunk",
+      "from": "dedup-extract",
+      "to": "chunk-embed",
+      "label": "纯文本",
+      "labelDy": 25
+    },
+    {
+      "id": "f-sync-chunk",
+      "from": "sync-index",
+      "to": "chunk-embed",
+      "label": "分段文本"
+    },
+    {
+      "id": "f-embed-pg",
+      "from": "chunk-embed",
+      "to": "pg-doc",
+      "label": "行 + 向量",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "f-query",
+      "from": "consumers",
+      "to": "hybrid",
+      "label": "查询",
+      "variant": "emphasis",
+      "labelDy": 25
+    },
+    {
+      "id": "f-pg-vector-hybrid",
+      "from": "pg-doc",
+      "to": "hybrid",
+      "label": "向量候选"
+    },
+    {
+      "id": "f-pg-hybrid",
+      "from": "pg-doc",
+      "to": "hybrid",
+      "label": "BM25 分支",
+      "route": "bottom-channel"
+    },
+    {
+      "id": "f-hybrid-rerank",
+      "from": "hybrid",
+      "to": "rerank",
+      "label": "融合候选 ≤24",
+      "labelDy": 25
+    },
+    {
+      "id": "f-rerank-filter",
+      "from": "rerank",
+      "to": "filter",
+      "label": "top_k",
+      "labelDy": 25
+    },
+    {
+      "id": "f-filter-gate",
+      "from": "filter",
+      "to": "gate",
+      "label": "证据片段",
+      "labelDy": 25
+    },
+    {
+      "id": "f-gate-answer",
+      "from": "gate",
+      "to": "answer",
+      "label": "可答",
+      "variant": "emphasis",
+      "labelDy": 25
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "来源策略",
+      "items": [
+        "进入 RAG 的来源：issue、pull_request、workflow_run（仅失败且日志脱敏）、project_doc、knowledge_file（上传）、memory_note（批准记忆）",
+        "当前源码 code_file 被硬禁止入向量库——源码以当前 checkout 为准，走 workspace.search_code / read_file 实时检索；启动时还会清理遗留 code_file 向量",
+        "project_overview / manifest / team_member / weekly_report / 会话与记忆投影等结构化、派生数据不进入 RAG"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "索引一致性",
+      "items": [
+        "切片段落感知：Markdown 标题栈 + 代码围栏独立成块 + 句子边界回退，默认 800/100，单文档 ≤5000 块，chunk_id 为内容哈希前 24 位",
+        "全部仓库共享一个向量空间：provider/model/维度与全局配置不一致直接报错；维度与 documents.embedding 列不符时需迁移重建",
+        "向量随文档行同一事务写入 PostgreSQL（pgvector HNSW 余弦索引），不存在跨库孤儿；reindex 按批重算"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "检索与门禁",
+      "items": [
+        "融合为加权制而非 RRF：min(1, 0.62×向量 + 0.30×BM25 + 0.08×双路命中)；同父文档最多占 2 块，Jaccard ≥0.9 去近重复",
+        "重排仅处理前 24 个候选，qwen3-rerank API 异常回退本地启发式（词面/覆盖/新鲜度加权）",
+        "Answer Gate 无证据、强信号未命中、证据极性对立、问题模糊时分别给出拒答/澄清/冲突结论，绝不无证据作答"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "闭环消费",
+      "items": [
+        "两个消费者：ContextAssembler 调用前预检索注入 [Related Evidence]；ChatAgent 循环内 rag.search_similar_documents 改写补查交叉验证",
+        "向量检索不可用（扩展缺失 / 非 PostgreSQL / 显式禁用）时混合检索降级纯 BM25，状态接口明确显示 degraded"
+      ]
+    }
+  ]
+}

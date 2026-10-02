@@ -1,0 +1,284 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "仓库接入与数据同步调度",
+    "locale": "zh-CN",
+    "output": "架构图/07-sync/repo-sync-workflow.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "intake",
+      "label": "接入与触发"
+    },
+    {
+      "id": "sync",
+      "label": "GitHub 同步"
+    },
+    {
+      "id": "index",
+      "label": "派生索引"
+    },
+    {
+      "id": "exception",
+      "label": "失败处理",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "label": "接入",
+      "fromCol": 0,
+      "toCol": 0
+    },
+    {
+      "id": "p2",
+      "label": "触发",
+      "fromCol": 1,
+      "toCol": 1
+    },
+    {
+      "id": "p3",
+      "label": "同步",
+      "fromCol": 2,
+      "toCol": 2,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p4",
+      "label": "派生",
+      "fromCol": 3,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "connect",
+    "lock",
+    "fetch",
+    "upsert",
+    "post"
+  ],
+  "nodes": [
+    {
+      "id": "connect",
+      "lane": "intake",
+      "col": 0,
+      "type": "frontend",
+      "label": "仓库接入",
+      "sublabel": "connect · token 加密落库",
+      "width": 145
+    },
+    {
+      "id": "timer",
+      "lane": "intake",
+      "col": 1,
+      "type": "backend",
+      "label": "调度器",
+      "sublabel": "300s · 指数退避",
+      "width": 140,
+      "yOffset": -65
+    },
+    {
+      "id": "webhook",
+      "lane": "intake",
+      "col": 1,
+      "type": "cloud",
+      "label": "Webhook",
+      "sublabel": "HMAC 验签 · 6 类事件",
+      "width": 140,
+      "yOffset": 65
+    },
+    {
+      "id": "lock",
+      "lane": "sync",
+      "col": 2,
+      "type": "security",
+      "label": "同步入口",
+      "sublabel": "per-repo 锁 · 解密 token",
+      "width": 145
+    },
+    {
+      "id": "fetch",
+      "lane": "sync",
+      "col": 3,
+      "type": "cloud",
+      "label": "实体拉取",
+      "sublabel": "Issue / PR+评论 / CI 日志",
+      "width": 150
+    },
+    {
+      "id": "upsert",
+      "lane": "sync",
+      "col": 4,
+      "type": "database",
+      "label": "增量写库",
+      "sublabel": "唯一键 upsert · SAVEPOINT",
+      "width": 150
+    },
+    {
+      "id": "post",
+      "lane": "sync",
+      "col": 5,
+      "type": "backend",
+      "label": "同步收尾",
+      "sublabel": "last_sync_at · 证据重建",
+      "width": 145
+    },
+    {
+      "id": "checkout",
+      "lane": "index",
+      "col": 3,
+      "type": "backend",
+      "label": "代码检出",
+      "sublabel": "shallow clone / 本地 / worktree",
+      "width": 155
+    },
+    {
+      "id": "derive",
+      "lane": "index",
+      "col": 5,
+      "type": "database",
+      "label": "派生索引",
+      "sublabel": "代码图 · 文档索引 · 知识图谱",
+      "width": 160
+    },
+    {
+      "id": "backoff",
+      "lane": "exception",
+      "col": 1,
+      "type": "backend",
+      "label": "退避重试",
+      "sublabel": "min(60×f, 600)s 不退出",
+      "width": 145
+    },
+    {
+      "id": "api-fail",
+      "lane": "exception",
+      "col": 3,
+      "type": "security",
+      "label": "拉取失败",
+      "sublabel": "保留旧数据 · 单条跳过",
+      "width": 145
+    }
+  ],
+  "edges": [
+    {
+      "id": "connect-lock",
+      "from": "connect",
+      "to": "lock",
+      "role": "main",
+      "label": "接入即首次同步",
+      "toSide": "top"
+    },
+    {
+      "id": "timer-lock",
+      "from": "timer",
+      "to": "lock",
+      "role": "async",
+      "variant": "dashed",
+      "label": "轮询触发",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "webhook-lock",
+      "from": "webhook",
+      "to": "lock",
+      "role": "async",
+      "variant": "dashed",
+      "label": "事件触发",
+      "toSide": "bottom"
+    },
+    {
+      "id": "lock-fetch",
+      "from": "lock",
+      "to": "fetch",
+      "role": "main",
+      "fromSide": "right"
+    },
+    {
+      "id": "fetch-upsert",
+      "from": "fetch",
+      "to": "upsert",
+      "role": "main",
+      "label": "逐实体"
+    },
+    {
+      "id": "upsert-post",
+      "from": "upsert",
+      "to": "post",
+      "role": "main"
+    },
+    {
+      "id": "upsert-checkout",
+      "from": "upsert",
+      "to": "checkout",
+      "role": "branch",
+      "variant": "dashed",
+      "label": "后台派生"
+    },
+    {
+      "id": "checkout-derive",
+      "from": "checkout",
+      "to": "derive",
+      "role": "main"
+    },
+    {
+      "id": "fetch-apifail",
+      "from": "fetch",
+      "to": "api-fail",
+      "role": "error",
+      "variant": "security",
+      "label": "API 失败"
+    },
+    {
+      "id": "timer-backoff",
+      "from": "timer",
+      "to": "backoff",
+      "role": "error",
+      "variant": "security",
+      "label": "DB 闪断"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "接入",
+      "items": [
+        "POST /repos/connect 支持 owner/repo、本地已有 clone、指定父目录三种输入；仅 github / github_compatible 两种 provider",
+        "GitHub Token 用 Fernet 加密入库；远端返回的 clone_url 不可信，仅接受 https + clone 主机白名单",
+        "本地模式要求路径在用户主目录/工作区内且 ALLOW_LOCAL_REPO_MODE 开启；demo 模式校验失败可降级仅落库"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "同步",
+      "items": [
+        "同一仓库 per-repo asyncio.Lock 串行化，调度器 / webhook / 手动并发互不阻塞事件循环",
+        "同步实体：Issues（过滤 PR）、PRs + 文件 + review 评论、Workflow Runs + Jobs(steps JSON)，仅失败 run 下载日志 zip（≤80000 字符）",
+        "非增量全量拉最近 limit 条，按 (repo_id, github_id) 唯一约束先查后插；新插入走 SAVEPOINT，撞唯一键只跳过该条",
+        "PR 文件/评论与 jobs/日志采用先拉新数据成功再 delete+重插；API 失败保留旧数据"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "派生索引",
+      "items": [
+        "代码检出：managed 模式 shallow clone --depth 1；local 模式直接用本地工作树；PR 用独立 worktree 快照（168 小时过期清理）",
+        "正则提取 Python/TS 符号与 calls/imports 关系，按 (repo_id, branch, pr_id, pr_number) 精确删除重建 code_symbols / code_relations",
+        "项目文档索引三级 tier + 指纹变更检测写 documents 表；知识图谱全量重建 knowledge_graph_edges（#引用、closing 关键词、failed_in_ci 等）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "可靠性",
+      "items": [
+        "调度器单仓失败仅告警不中断本轮；轮级异常指数退避 min(60×failures, 600) 秒，循环永不退出",
+        "Webhook 未匹配仓库统一 accepted=false 防枚举；issues/pull_request/workflow_run/push/check_suite/check_run 六类事件触发该仓全量同步",
+        "删除仓库时级联清理 30+ 张表（向量随 documents 行一并删除）"
+      ]
+    }
+  ]
+}

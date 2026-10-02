@@ -1,0 +1,138 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "RAG 文档处理状态机",
+    "locale": "zh-CN",
+    "output": "架构图/06-rag/document-lifecycle.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "处理主线"
+    },
+    {
+      "id": "terminal",
+      "label": "失败与恢复"
+    }
+  ],
+  "states": [
+    {
+      "id": "queued",
+      "type": "start",
+      "label": "queued",
+      "sublabel": "接收入队 · 202 返回",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "parsing",
+      "type": "active",
+      "label": "parsing",
+      "sublabel": "格式解析",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "splitting",
+      "type": "active",
+      "label": "splitting",
+      "sublabel": "段落感知切片",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "embedding",
+      "type": "active",
+      "label": "embedding",
+      "sublabel": "批量向量计算",
+      "lane": "main",
+      "col": 3,
+      "step": "04"
+    },
+    {
+      "id": "completed",
+      "type": "success",
+      "label": "completed",
+      "sublabel": "可检索",
+      "lane": "main",
+      "col": 4,
+      "step": "05"
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "failed",
+      "sublabel": "error_message 截断 1000 字符",
+      "lane": "terminal",
+      "col": 2,
+      "tag": "可重试"
+    }
+  ],
+  "transitions": [
+    {
+      "from": "queued",
+      "to": "parsing"
+    },
+    {
+      "from": "parsing",
+      "to": "splitting"
+    },
+    {
+      "from": "splitting",
+      "to": "embedding"
+    },
+    {
+      "from": "embedding",
+      "to": "completed"
+    },
+    {
+      "from": "parsing",
+      "to": "failed",
+      "variant": "security",
+      "label": "解析失败"
+    },
+    {
+      "from": "splitting",
+      "to": "failed",
+      "variant": "security",
+      "label": "切片失败"
+    },
+    {
+      "from": "embedding",
+      "to": "failed",
+      "variant": "security",
+      "label": "嵌入失败 / 重启清扫"
+    },
+    {
+      "from": "failed",
+      "to": "queued",
+      "label": "retry 重置入队",
+      "route": "left-channel"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "状态流转",
+      "items": [
+        "上传接口立即返回 202，文档以 queued 状态异步进入流水线",
+        "每个中间状态由 document_processing.py 显式写入 status 字段，前端按状态展示进度",
+        "completed 表示切片与 pgvector 向量已随文档行写入 PostgreSQL（同一事务）"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "失败与恢复",
+      "items": [
+        "任一阶段异常进入 failed，error_message 截断至 1000 字符",
+        "服务重启时 _sweep_stale_background_jobs 把 parsing / splitting / embedding 的遗留文档统一标记 failed，可重新上传或 retry",
+        "retry 端点将 failed 文档重置为 queued 再次入队"
+      ]
+    }
+  ]
+}

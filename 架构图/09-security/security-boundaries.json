@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "安全与信任边界",
+    "locale": "zh-CN",
+    "output": "架构图/09-security/security-boundaries.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "浏览器",
+      "sublabel": "构建期注入 API Key",
+      "pos": [
+        40,
+        140
+      ],
+      "size": [
+        130,
+        70
+      ]
+    },
+    {
+      "id": "github-saas",
+      "type": "cloud",
+      "label": "GitHub",
+      "sublabel": "REST + Webhook",
+      "pos": [
+        40,
+        330
+      ],
+      "size": [
+        130,
+        70
+      ]
+    },
+    {
+      "id": "mw",
+      "type": "security",
+      "label": "API Key 中间件",
+      "sublabel": "X-API-Key / Bearer",
+      "tag": "compare_digest 常量时间比较",
+      "pos": [
+        280,
+        140
+      ],
+      "size": [
+        190,
+        80
+      ]
+    },
+    {
+      "id": "webhook-verify",
+      "type": "security",
+      "label": "Webhook 验签",
+      "sublabel": "HMAC-SHA256 · 未配置仅开发放行",
+      "pos": [
+        280,
+        330
+      ],
+      "size": [
+        190,
+        80
+      ]
+    },
+    {
+      "id": "startup",
+      "type": "security",
+      "label": "生产启动校验",
+      "sublabel": "弱配置直接拒绝启动",
+      "pos": [
+        280,
+        520
+      ],
+      "size": [
+        190,
+        80
+      ]
+    },
+    {
+      "id": "fernet",
+      "type": "security",
+      "label": "Token 加密",
+      "sublabel": "Fernet · sha256 派生密钥",
+      "pos": [
+        560,
+        140
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "ssrf",
+      "type": "security",
+      "label": "SSRF 防护",
+      "sublabel": "https + 主机白名单 · 重定向剥离凭证",
+      "pos": [
+        560,
+        330
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "redaction",
+      "type": "security",
+      "label": "日志脱敏",
+      "sublabel": "5 类密钥模式 → *** · 截断 600",
+      "pos": [
+        560,
+        520
+      ],
+      "size": [
+        180,
+        80
+      ]
+    },
+    {
+      "id": "rbac",
+      "type": "security",
+      "label": "RBAC 权限",
+      "sublabel": "owner / maintainer / developer / viewer",
+      "pos": [
+        840,
+        140
+      ],
+      "size": [
+        190,
+        80
+      ]
+    },
+    {
+      "id": "audit",
+      "type": "database",
+      "label": "审计日志",
+      "sublabel": "AuditLog · 操作全记录",
+      "pos": [
+        840,
+        330
+      ],
+      "size": [
+        190,
+        80
+      ]
+    },
+    {
+      "id": "actiondraft",
+      "type": "security",
+      "label": "ActionDraft",
+      "sublabel": "pending_confirmation 草稿",
+      "pos": [
+        840,
+        520
+      ],
+      "size": [
+        190,
+        80
+      ]
+    },
+    {
+      "id": "confirm",
+      "type": "security",
+      "label": "人工确认",
+      "sublabel": "draft:approve · 唯一外写路径",
+      "pos": [
+        840,
+        690
+      ],
+      "size": [
+        190,
+        70
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "入口防线",
+      "wraps": [
+        "mw",
+        "webhook-verify",
+        "startup"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "region",
+      "label": "应用内控制面",
+      "wraps": [
+        "fernet",
+        "ssrf",
+        "redaction",
+        "rbac",
+        "audit",
+        "actiondraft",
+        "confirm"
+      ],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-mw",
+      "from": "browser",
+      "to": "mw",
+      "label": "X-API-Key",
+      "variant": "security"
+    },
+    {
+      "id": "gh-webhook",
+      "from": "github-saas",
+      "to": "webhook-verify",
+      "label": "HMAC 验签",
+      "variant": "security"
+    },
+    {
+      "id": "webhook-ssrf",
+      "from": "webhook-verify",
+      "to": "ssrf",
+      "label": "触发同步"
+    },
+    {
+      "id": "ssrf-fernet",
+      "from": "ssrf",
+      "to": "fernet",
+      "label": "解密取 Token",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "rbac-audit",
+      "from": "rbac",
+      "to": "audit",
+      "label": "写审计",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "draft-confirm",
+      "from": "actiondraft",
+      "to": "confirm",
+      "label": "人工确认后执行",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "入口防线",
+      "items": [
+        "ApiKeyMiddleware 保护全部 /api/*，豁免 /health /docs /redoc /openapi.json 与 /api/webhooks；比较用 hmac.compare_digest",
+        "Webhook 用 HMAC-SHA256(secret, body) 与 X-Hub-Signature-256 比对；未配置 secret 仅开发模式放行并告警；未匹配仓库统一 accepted=false 防枚举",
+        "生产环境三重底线：缺 DEVFLOW_API_KEY、TOKEN_ENCRYPTION_KEY 为默认值、缺 GITHUB_WEBHOOK_SECRET 直接拒绝启动"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "凭证与出站",
+      "items": [
+        "GitHub Token 以 Fernet 加密落库（密钥 sha256 派生，注释自评适合课程项目），四处解密点均为运行时按需解密",
+        "GITHUB_API_ALLOWED_HOSTS 默认仅 api.github.com；全局 token 只发给官方域，跨主机重定向剥离 Authorization，禁止跟随重定向",
+        "日志脱敏 5 类模式：gh[pousr]_ token、sk- 密钥、URL 内 token、user:pass@、Bearer/Basic 头；sanitize_error 截断 600 字符"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "授权与外写闭环",
+      "items": [
+        "RBAC 四角色：owner 全量（含 settings:manage）、maintainer +draft:approve、developer +draft:create/eval:run、viewer 只读；require_permission 返回 403",
+        "所有对外写入只走 ActionDraft → 人工确认 → GitHub 执行；confirm 需 draft:approve 权限；GitHub 已写但本地记录失败时仍标 executed 防重复写",
+        "send_report 类型仅本地标记不外发；全程写 AuditLog（用户/仓库/动作/目标/结果）"
+      ]
+    }
+  ]
+}

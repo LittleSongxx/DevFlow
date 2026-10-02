@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAGAS 评测系统 · DevFlow AI 架构图集</title>
+<style>
+:root{--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#f8fafc;--card:#ffffff;--accent:#2563eb;--chip:#eff6ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+header.site{background:#0b1220;color:#e2e8f0;padding:26px 32px}
+header.site h1{margin:0 0 6px;font-size:22px}
+header.site p{margin:0;color:#94a3b8;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:26px 24px 60px}
+nav.crumbs{font-size:13px;color:var(--sub);margin-bottom:14px}
+nav.crumbs a{color:var(--accent);text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;text-decoration:none;color:var(--ink);transition:box-shadow .15s}
+a.card:hover{box-shadow:0 6px 20px rgba(37,99,235,.12)}
+a.card h3{margin:0 0 6px;font-size:16px}
+a.card .kind{display:inline-block;font-size:12px;color:var(--accent);background:var(--chip);border-radius:999px;padding:1px 10px;margin-bottom:8px}
+a.card p{margin:0;font-size:13px;color:var(--sub)}
+section.block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:18px 0}
+section.block h2{margin:0 0 4px;font-size:18px}
+section.block .meta{font-size:12px;color:var(--sub);margin-bottom:12px}
+section.block p,section.block li{font-size:14px}
+ul.evidence{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--sub)}
+ul.evidence li{margin:2px 0}
+ul.evidence code, p code, li code{background:#f1f5f9;border-radius:4px;padding:0 5px;font-size:12.5px}
+.frame-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin-top:10px}
+.frame-wrap iframe{width:100%;height:640px;border:0;display:block}
+.open-line{font-size:13px;margin-top:8px}
+.open-line a{color:var(--accent)}
+.rel{font-size:13px;color:var(--sub)}
+.rel a{color:var(--accent);text-decoration:none;margin-right:12px}
+footer{max-width:1180px;margin:0 auto;padding:0 24px 40px;color:#94a3b8;font-size:12px}
+@media (max-width:720px){.frame-wrap iframe{height:480px}}
+</style></head>
+<body>
+<header class="site"><h1>RAGAS 评测系统</h1><p>隔离会话真实运行 ChatAgent，Ragas 五指标门禁 + 运行状态机</p></header>
+<main>
+ <nav class="crumbs"><a href="../index.html">← 架构图集索引</a></nav>
+ <section class="block">
+  <h2>这个部分负责什么</h2>
+  <p>ChatAgent 检索质量的回归基线：提交即返回 eval_id 后台执行；begin_nested 保存点内运行生产 ChatAgent + 全套工具（evaluation_mode），收集预检索与二次检索证据；Ragas 0.4 Collections 计算五项门禁指标；硬规则全部通过且指标达 RAGAS_*_MIN 才 passed。</p>
+  <h2 style="font-size:15px;margin-top:16px">关键机制</h2>
+  <ul><li>执行状态与质量状态分离：Judge 失败是评测不完整（incomplete），不是质量结论。</li><li>rescore 只重算异常项，不重跑 ChatAgent（agent_reused=true）；回归对比要求评测集 Hash / Ragas 版本 / Judge / top_k 一致。</li><li>失败 Case 一键生成 create_issue ActionDraft 进入人工确认。</li><li>状态机：queued→running→passed/failed/error/no_cases（partial 见卡片）；重启清扫遗留 run 为 error。</li></ul>
+  <h2 style="font-size:15px;margin-top:16px">源码证据</h2>
+  <ul class="evidence"><li><code>backend/app/api/routes/evaluations.py</code> L90</li><li><code>backend/app/services/evals/ragas_runner.py</code> L626</li><li><code>backend/app/services/evals/ragas_runner.py</code> L843</li></ul>
+ </section>
+ 
+ <section class="block">
+  <h2>RAGAS 评测执行流程</h2>
+  <div class="meta">图型 workflow + lifecycle · archify showcase 校验通过（validate / deliver / check / browser-check 四门）</div>
+  <div class="frame-wrap"><iframe src="eval-workflow.html" title="RAGAS 评测执行流程"></iframe></div>
+  <div class="open-line">全屏交互（主题切换 / 搜索 / 聚焦）：<a href="eval-workflow.html" target="_blank">eval-workflow.html</a></div>
+ </section>
+ <section class="block">
+  <h2>RAGAS 评测运行状态机</h2>
+  <div class="meta">图型 lifecycle · archify showcase 校验通过</div>
+  <div class="frame-wrap"><iframe src="eval-lifecycle.html" title="RAGAS 评测运行状态机"></iframe></div>
+  <div class="open-line">全屏交互：<a href="eval-lifecycle.html" target="_blank">eval-lifecycle.html</a></div>
+ </section>
+ <section class="block"><h2 style="font-size:15px">相关部分</h2><p class="rel"><a href="../04-chat-agent/page.html">被测对象</a><a href="../09-security/page.html">失败转草稿</a></p></section>
+</main>
+<footer>DevFlow AI 架构图集 · 由 archify 逐图校验的独立交互图 + 手工编排的说明页组成</footer>
+</body></html>

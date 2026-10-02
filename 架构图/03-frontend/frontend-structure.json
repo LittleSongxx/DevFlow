@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Next.js 前端结构",
+    "locale": "zh-CN",
+    "output": "架构图/03-frontend/frontend-structure.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "app-shell",
+      "type": "frontend",
+      "label": "AppShell 导航",
+      "sublabel": "9 个导航项 · zh-CN 根布局",
+      "pos": [
+        460,
+        100
+      ],
+      "size": [
+        190,
+        70
+      ]
+    },
+    {
+      "id": "home",
+      "type": "frontend",
+      "label": "Workspace 首页",
+      "sublabel": "会话 + 实体列表 + SSE 对话",
+      "pos": [
+        60,
+        300
+      ],
+      "size": [
+        175,
+        75
+      ]
+    },
+    {
+      "id": "knowledge",
+      "type": "frontend",
+      "label": "项目知识",
+      "sublabel": "知识库列表 + 详情 + 上传",
+      "pos": [
+        275,
+        300
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "rag-studio",
+      "type": "frontend",
+      "label": "RAG 工作室",
+      "sublabel": "文档 + 检索问答试验",
+      "pos": [
+        470,
+        300
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "repos-page",
+      "type": "frontend",
+      "label": "仓库管理",
+      "sublabel": "连接 / 删除 / 同步状态",
+      "pos": [
+        665,
+        300
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "evals",
+      "type": "frontend",
+      "label": "评测中心",
+      "sublabel": "运行 / 重评 / 回归对比",
+      "pos": [
+        860,
+        300
+      ],
+      "size": [
+        165,
+        75
+      ]
+    },
+    {
+      "id": "drafts",
+      "type": "frontend",
+      "label": "草稿确认",
+      "sublabel": "确认 / 取消 + 审计",
+      "pos": [
+        160,
+        470
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "runs",
+      "type": "frontend",
+      "label": "运行查看",
+      "sublabel": "CI 运行与任务状态",
+      "pos": [
+        355,
+        470
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "codegraph",
+      "type": "frontend",
+      "label": "代码图谱",
+      "sublabel": "符号 / 关系 / PR 快照",
+      "pos": [
+        550,
+        470
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "reports",
+      "type": "frontend",
+      "label": "周报与工作区",
+      "sublabel": "跨仓报告生成",
+      "pos": [
+        745,
+        470
+      ],
+      "size": [
+        160,
+        75
+      ]
+    },
+    {
+      "id": "api-client",
+      "type": "backend",
+      "label": "lib/api.ts",
+      "sublabel": "X-API-Key 注入 · SSE 解析 · 错误归一",
+      "pos": [
+        460,
+        660
+      ],
+      "size": [
+        200,
+        75
+      ]
+    },
+    {
+      "id": "types-lib",
+      "type": "database",
+      "label": "lib/rag.ts · types.ts",
+      "sublabel": "KnowledgeConfig / Document 类型",
+      "pos": [
+        110,
+        830
+      ],
+      "size": [
+        190,
+        75
+      ]
+    },
+    {
+      "id": "backend-api",
+      "type": "cloud",
+      "label": "FastAPI 后端",
+      "sublabel": "REST /api/* · :8000",
+      "pos": [
+        110,
+        660
+      ],
+      "size": [
+        170,
+        75
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "App Router 页面（frontend/app）",
+      "wraps": [
+        "home",
+        "knowledge",
+        "rag-studio",
+        "repos-page",
+        "evals",
+        "drafts",
+        "runs",
+        "codegraph",
+        "reports"
+      ],
+      "pad": 26
+    }
+  ],
+  "connections": [
+    {
+      "id": "shell-home",
+      "from": "app-shell",
+      "to": "home",
+      "label": "主入口",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-knowledge",
+      "from": "app-shell",
+      "to": "knowledge"
+    },
+    {
+      "id": "shell-rag",
+      "from": "app-shell",
+      "to": "rag-studio"
+    },
+    {
+      "id": "shell-repos",
+      "from": "app-shell",
+      "to": "repos-page"
+    },
+    {
+      "id": "shell-evals",
+      "from": "app-shell",
+      "to": "evals"
+    },
+    {
+      "id": "home-api",
+      "from": "home",
+      "to": "api-client",
+      "label": "SSE 流",
+      "variant": "emphasis"
+    },
+    {
+      "id": "knowledge-api",
+      "from": "knowledge",
+      "to": "api-client"
+    },
+    {
+      "id": "rag-api",
+      "from": "rag-studio",
+      "to": "api-client"
+    },
+    {
+      "id": "evals-api",
+      "from": "evals",
+      "to": "api-client",
+      "label": "轮询"
+    },
+    {
+      "id": "drafts-api",
+      "from": "drafts",
+      "to": "api-client"
+    },
+    {
+      "id": "codegraph-api",
+      "from": "codegraph",
+      "to": "api-client"
+    },
+    {
+      "id": "api-backend",
+      "from": "api-client",
+      "to": "backend-api",
+      "label": "REST · X-API-Key",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "导航与页面",
+      "items": [
+        "AppShell 顶部导航 9 项：Workspace(/)、项目知识、RAG 工作室、Repos、Drafts、Runs、Reports、Code Graph、Evals",
+        "Workspace 首页承担主对话界面：仓库选择、会话管理、Issue/PR/Run 列表与 ChatAgent SSE 流式对话",
+        "评测中心支持提交评测、轮询进度、展开 Case 诊断、仅重试异常评分、回归对比与失败转草稿"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "API 客户端",
+      "items": [
+        "lib/api.ts 以 NEXT_PUBLIC_API_BASE_URL（默认 localhost:8000）为基址，构建期内联 NEXT_PUBLIC_API_KEY 并为所有请求加 X-API-Key 头",
+        "apiPostStream 解析 SSE 的 event:/data: 帧；throwApiError 归一 FastAPI detail / pydantic 数组 / message 三种错误形态",
+        "修改 DEVFLOW_API_KEY 后需重建前端镜像（构建期内联变量）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "部署形态",
+      "items": [
+        "next.config.js 输出 standalone；Dockerfile 三阶段构建（deps → builder → runner），runner 仅携带 .next/standalone + 静态资源，非 root 用户运行",
+        "容器内监听 3000，宿主机映射 127.0.0.1:3001",
+        "所有页面共享 zh-CN 根布局与 AppShell"
+      ]
+    }
+  ]
+}

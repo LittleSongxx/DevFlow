@@ -1,0 +1,83 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "RAGAS 评测执行流程",
+    "locale": "zh-CN",
+    "output": "架构图/08-evals/eval-workflow.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "submit", "label": "提交" },
+    { "id": "run", "label": "隔离执行" },
+    { "id": "judge", "label": "评分与判定" },
+    { "id": "handle", "label": "结果与处置" }
+  ],
+  "phases": [
+    { "id": "p1", "label": "提交", "fromCol": 0, "toCol": 1 },
+    { "id": "p2", "label": "执行", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "p3", "label": "评分", "fromCol": 4, "toCol": 4, "variant": "emphasis" },
+    { "id": "p4", "label": "判定与处置", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["submit-api", "evalrun", "session", "agent-run", "ragas", "threshold", "report"],
+  "nodes": [
+    { "id": "submit-api", "lane": "submit", "col": 0, "type": "frontend", "label": "提交评测", "sublabel": "POST /evals/rag/run", "width": 140 },
+    { "id": "evalrun", "lane": "submit", "col": 1, "type": "database", "label": "EvalRun 落库", "sublabel": "queued · 返回 eval_id", "width": 140 },
+    { "id": "session", "lane": "run", "col": 2, "type": "security", "label": "隔离会话", "sublabel": "begin_nested · 可回滚", "width": 140 },
+    { "id": "agent-run", "lane": "run", "col": 3, "type": "backend", "label": "真实 ChatAgent", "sublabel": "生产工具集 · 证据收集", "width": 145 },
+    { "id": "ragas", "lane": "judge", "col": 4, "type": "cloud", "label": "Ragas 评分", "sublabel": "Collections 五指标 + 工具指标", "width": 160, "yOffset": -70 },
+    { "id": "judge-fail", "lane": "judge", "col": 4, "type": "security", "label": "Judge 异常", "sublabel": "超时 / 指标缺失", "width": 150, "yOffset": 80 },
+    { "id": "threshold", "lane": "handle", "col": 5, "type": "backend", "label": "阈值判定", "sublabel": "硬规则 + RAGAS_*_MIN", "width": 150, "yOffset": -70 },
+    { "id": "report", "lane": "handle", "col": 5, "type": "database", "label": "结果落库", "sublabel": "轨迹 + 证据 + 诊断", "width": 145, "yOffset": 80 },
+    { "id": "issue-draft", "lane": "run", "col": 5, "type": "security", "label": "失败转草稿", "sublabel": "create_issue 人工确认", "width": 145 }
+  ],
+  "edges": [
+    { "id": "submit-evalrun", "from": "submit-api", "to": "evalrun", "role": "main" },
+    { "id": "evalrun-session", "from": "evalrun", "to": "session", "role": "main", "label": "后台任务" },
+    { "id": "session-agent", "from": "session", "to": "agent-run", "role": "main", "label": "evaluation_mode" },
+    { "id": "agent-ragas", "from": "agent-run", "to": "ragas", "role": "main", "label": "回答 + 证据" },
+    { "id": "ragas-judgefail", "from": "ragas", "to": "judge-fail", "role": "error", "variant": "security", "label": "评分失败" },
+    { "id": "ragas-threshold", "from": "ragas", "to": "threshold", "role": "main", "label": "逐指标均值" },
+    { "id": "threshold-report", "from": "threshold", "to": "report", "role": "main", "label": "passed / failed" },
+    { "id": "threshold-draft", "from": "threshold", "to": "issue-draft", "role": "branch", "variant": "security", "label": "质量失败" },
+    { "id": "judgefail-report", "from": "judge-fail", "to": "report", "role": "branch", "variant": "dashed", "label": "标记 incomplete" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "提交与隔离",
+      "items": [
+        "提交即返回 queued + eval_id，ChatAgent 与 Ragas 全部在 FastAPI 后台任务中继续；页面轮询 GET /api/evals/{id}，刷新不中断",
+        "评测在 begin_nested 保存点中运行，结束后回滚，不留任何残留 Conversation；测试验证评测后无残留",
+        "复用生产的 _build_conversation_tools 全套工具与 Skill Runtime 上下文（evaluation_mode=true），不是模拟链路"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "证据与指标",
+      "items": [
+        "收集预检索（prefetch）与 Agent 工具二次检索（agent_tool）两路证据，多查询结果去重汇入",
+        "Ragas 0.4 Collections API：context_precision / context_recall / faithfulness / answer_relevancy / agent_goal_accuracy 五项门禁 + tool_call_accuracy / f1",
+        "Judge 复用 LLM_API_KEY 或独立 RAGAS_JUDGE_* 配置；answer_relevancy 用项目自有 Embedding"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "硬规则与阈值",
+      "items": [
+        "硬规则：期望来源命中、必需工具齐备、无工具报错、回答非空、must_include / must_not_include 短语、answer_regex 全匹配——全部通过才 passed",
+        "五项语义指标均需达到 .env 的 RAGAS_*_MIN 门槛（0.75 / 0.80 / 0.90 / 0.80 / 0.80）",
+        "执行状态与质量状态分离：Judge 失败是评测不完整（incomplete），不会伪装成质量结论"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "结果处置",
+      "items": [
+        "逐题保存工具轨迹、检索证据与可执行诊断，便于对同一基线回归",
+        "仅重试异常评分：复用已保存回答，不重跑 ChatAgent；回归对比要求评测集 Hash / Ragas 版本 / Judge / top_k 一致",
+        "失败 Case 一键生成 create_issue ActionDraft，携带证据与建议进入人工确认流程"
+      ]
+    }
+  ]
+}

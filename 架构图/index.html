@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DevFlow AI 架构图集</title>
+<style>
+:root{--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#f8fafc;--card:#ffffff;--accent:#2563eb;--chip:#eff6ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+header.site{background:#0b1220;color:#e2e8f0;padding:26px 32px}
+header.site h1{margin:0 0 6px;font-size:22px}
+header.site p{margin:0;color:#94a3b8;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:26px 24px 60px}
+nav.crumbs{font-size:13px;color:var(--sub);margin-bottom:14px}
+nav.crumbs a{color:var(--accent);text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;text-decoration:none;color:var(--ink);transition:box-shadow .15s}
+a.card:hover{box-shadow:0 6px 20px rgba(37,99,235,.12)}
+a.card h3{margin:0 0 6px;font-size:16px}
+a.card .kind{display:inline-block;font-size:12px;color:var(--accent);background:var(--chip);border-radius:999px;padding:1px 10px;margin-bottom:8px}
+a.card p{margin:0;font-size:13px;color:var(--sub)}
+section.block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:18px 0}
+section.block h2{margin:0 0 4px;font-size:18px}
+section.block .meta{font-size:12px;color:var(--sub);margin-bottom:12px}
+section.block p,section.block li{font-size:14px}
+ul.evidence{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--sub)}
+ul.evidence li{margin:2px 0}
+ul.evidence code, p code, li code{background:#f1f5f9;border-radius:4px;padding:0 5px;font-size:12.5px}
+.frame-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin-top:10px}
+.frame-wrap iframe{width:100%;height:640px;border:0;display:block}
+.open-line{font-size:13px;margin-top:8px}
+.open-line a{color:var(--accent)}
+.rel{font-size:13px;color:var(--sub)}
+.rel a{color:var(--accent);text-decoration:none;margin-right:12px}
+footer{max-width:1180px;margin:0 auto;padding:0 24px 40px;color:#94a3b8;font-size:12px}
+@media (max-width:720px){.frame-wrap iframe{height:480px}}
+</style></head>
+<body>
+<header class="site"><h1>DevFlow AI 架构图集</h1>
+<p>GitHub PR / Issue 研发协作 AI Agent · 12 张校验图（architecture / workflow / dataflow / lifecycle）覆盖系统与全部关键子系统</p></header>
+<main>
+ <section class="block">
+  <h2>系统总览</h2>
+  <div class="meta">先看整体，再进入各部分</div>
+  <div class="frame-wrap"><iframe src="01-overview/system-architecture.html" title="系统总体架构"></iframe></div>
+  <div class="open-line">全屏交互：<a href="01-overview/system-architecture.html" target="_blank">system-architecture.html</a></div>
+ </section>
+ <section class="block"><h2>十个部分</h2><div class="grid"><a class="card" href="01-overview/page.html"><span class="kind">architecture</span><h3>01. 系统总体架构</h3><p>前端 / 后端 / 数据层 / 外部服务的全栈拓扑与部署边界</p></a><a class="card" href="02-backend/page.html"><span class="kind">architecture</span><h3>02. 后端应用架构</h3><p>FastAPI 分层：中间件 → 18 个路由 → 领域服务 → 基础设施客户端</p></a><a class="card" href="03-frontend/page.html"><span class="kind">architecture</span><h3>03. 前端结构</h3><p>Next.js App Router 页面地图与统一 API 客户端</p></a><a class="card" href="04-chat-agent/page.html"><span class="kind">workflow</span><h3>04. ChatAgent 对话工作流</h3><p>从 /api/chat 到工具调用循环、持久化与记忆封存的完整链路</p></a><a class="card" href="05-orchestrator/page.html"><span class="kind">workflow</span><h3>05. 多 Agent 工程审查工作流</h3><p>Planner → Orchestrator 并行任务 → Observer 质量闭环 → Synthesis 决策备忘录</p></a><a class="card" href="06-rag/page.html"><span class="kind">dataflow + lifecycle</span><h3>06. RAG 知识库子系统</h3><p>来源策略、摄取切片、混合检索、门禁生成的数据流 + 文档状态机</p></a><a class="card" href="07-sync/page.html"><span class="kind">workflow</span><h3>07. 仓库接入与数据同步</h3><p>connect 接入、调度器 / Webhook 双触发、增量同步与派生索引</p></a><a class="card" href="08-evals/page.html"><span class="kind">workflow + lifecycle</span><h3>08. RAGAS 评测系统</h3><p>隔离会话真实运行 ChatAgent，Ragas 五指标门禁 + 运行状态机</p></a><a class="card" href="09-security/page.html"><span class="kind">architecture</span><h3>09. 安全与信任边界</h3><p>入口防线、凭证与出站控制、授权与人工确认外写闭环</p></a><a class="card" href="10-data-model/page.html"><span class="kind">architecture</span><h3>10. 数据模型</h3><p>32 张 SQLAlchemy ORM 表按八个业务域分组，repositories 为中心</p></a></div></section>
+ <section class="block">
+  <h2>阅读顺序建议</h2>
+  <ul>
+   <li><b>入门</b>：01 系统总体架构 → 02 后端应用架构 → 03 前端结构。</li>
+   <li><b>Agent 主线</b>：04 ChatAgent 对话工作流 → 05 多 Agent 工程审查 → 06 RAG 子系统。</li>
+   <li><b>数据与运维</b>：07 仓库接入与同步 → 10 数据模型。</li>
+   <li><b>质量与安全</b>：08 RAGAS 评测系统 → 09 安全与信任边界。</li>
+  </ul>
+  <p class="rel" style="margin-top:10px">每页嵌入对应 archify 交互图（支持深浅主题、搜索与聚焦），并附源码文件/行号证据。</p>
+ </section>
+</main>
+<footer>本索引页为手工编排的静态 HTML；各图为 archify 独立生成并通过 showcase 四门校验。</footer>
+</body></html>

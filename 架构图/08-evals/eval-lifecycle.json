@@ -1,0 +1,152 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "RAGAS 评测运行状态机",
+    "locale": "zh-CN",
+    "output": "架构图/08-evals/eval-lifecycle.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "运行主线"
+    },
+    {
+      "id": "recovery",
+      "label": "重评与对比"
+    },
+    {
+      "id": "terminal",
+      "label": "终态"
+    }
+  ],
+  "states": [
+    {
+      "id": "queued",
+      "type": "start",
+      "label": "queued",
+      "sublabel": "EvalRun 落库 · 返回 eval_id",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "running",
+      "type": "active",
+      "label": "running",
+      "sublabel": "四阶段后台执行",
+      "lane": "main",
+      "col": 2,
+      "step": "02"
+    },
+    {
+      "id": "rescore",
+      "type": "waiting",
+      "label": "rescore",
+      "sublabel": "仅重评异常项 · 复用回答",
+      "lane": "recovery",
+      "col": 2,
+      "tag": "新 run"
+    },
+    {
+      "id": "no-cases",
+      "type": "neutral",
+      "label": "no_cases",
+      "sublabel": "无有效用例",
+      "lane": "terminal",
+      "col": 1
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "failed",
+      "sublabel": "质量未达标",
+      "lane": "terminal",
+      "col": 2
+    },
+    {
+      "id": "error",
+      "type": "failure",
+      "label": "error",
+      "sublabel": "异常 / 重启清扫",
+      "lane": "terminal",
+      "col": 3
+    },
+    {
+      "id": "passed",
+      "type": "success",
+      "label": "passed",
+      "sublabel": "硬规则 + 五指标达标",
+      "lane": "terminal",
+      "col": 4
+    }
+  ],
+  "transitions": [
+    {
+      "from": "queued",
+      "to": "running",
+      "label": "后台任务启动"
+    },
+    {
+      "from": "running",
+      "to": "passed",
+      "variant": "emphasis",
+      "label": "全部达标"
+    },
+    {
+      "from": "running",
+      "to": "failed",
+      "variant": "security",
+      "label": "指标低于阈值"
+    },
+    {
+      "from": "running",
+      "to": "error",
+      "variant": "security",
+      "label": "异常"
+    },
+    {
+      "from": "running",
+      "to": "no-cases",
+      "label": "用例为空"
+    },
+    {
+      "from": "failed",
+      "to": "rescore",
+      "label": "重评异常评分"
+    },
+    {
+      "from": "error",
+      "to": "rescore",
+      "label": "Judge 失败重试"
+    },
+    {
+      "from": "rescore",
+      "to": "passed",
+      "variant": "dashed",
+      "label": "重评达标"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "执行状态 × 质量状态",
+      "items": [
+        "execution_status 恒为 completed 表示评测流程跑完；quality_status 区分 not_evaluated / partial / incomplete / failed / passed",
+        "低分是质量失败；Judge 调用失败或指标缺失是评测不完整，两者不混同",
+        "服务重启清扫把 queued / running 的遗留 run 标记 error（提示重新运行）",
+        "个别 case 失败但整体可判时进入 partial（部分通过），同样支持 rescore 与回归对比"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "重评与回归",
+      "items": [
+        "rescore 只为 errors ∪ 缺失必备指标 ∪ 对应 tool 指标重新计算，不重跑 ChatAgent（agent_reused=true）",
+        "回归对比要求评测集 sha256、Ragas 版本、Judge 模型、top_k 四者一致，输出逐题 improved/regressed",
+        "失败 run 可一键生成 create_issue 类型 ActionDraft 进入人工确认"
+      ]
+    }
+  ]
+}

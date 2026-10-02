@@ -1,0 +1,83 @@
+name: devflow-ai
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: devflow-ai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-devflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-devflow}
+    ports:
+      # 宿主机 5432 常被占用，映射到 5433 仅供本机调试
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - devflow_postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_pgvector.sql:/docker-entrypoint-initdb.d/10-pgvector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devflow} -d ${POSTGRES_DB:-devflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: devflow-ai-backend
+    restart: unless-stopped
+    init: true
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      # 容器网络内经服务名互访；覆盖 .env 中面向宿主机的 localhost 地址
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-devflow}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-devflow}
+      REPO_CHECKOUT_DIR: /data/repos
+      UPLOAD_DIR: /data/uploads
+      APP_ENV: ${APP_ENV:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001,http://127.0.0.1:3001}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?请在 .env 中设置 TOKEN_ENCRYPTION_KEY}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      DEVFLOW_API_KEY: ${DEVFLOW_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_API_ALLOWED_HOSTS: ${GITHUB_API_ALLOWED_HOSTS:-api.github.com}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-v4-pro}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-dashscope}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-v4}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      RERANK_API_KEY: ${RERANK_API_KEY:-}
+      RERANK_BASE_URL: ${RERANK_BASE_URL:-https://dashscope.aliyuncs.com/api/v1}
+      QWEN_RERANK_MODEL: ${QWEN_RERANK_MODEL:-qwen3-rerank}
+      VECTOR_SEARCH_ENABLED: ${VECTOR_SEARCH_ENABLED:-true}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      AUTO_SYNC_ENABLED: ${AUTO_SYNC_ENABLED:-true}
+      AUTO_SYNC_INTERVAL_SECONDS: ${AUTO_SYNC_INTERVAL_SECONDS:-300}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - devflow_backend_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # 浏览器访问后端走宿主机端口
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_KEY: ${DEVFLOW_API_KEY:-}
+    container_name: devflow-ai-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  devflow_postgres_data:
+  devflow_backend_data:

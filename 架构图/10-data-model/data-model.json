@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "数据模型（32 张 ORM 表按域分组）",
+    "locale": "zh-CN",
+    "output": "架构图/10-data-model/data-model.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "users-domain",
+      "type": "database",
+      "label": "用户与工作区",
+      "sublabel": "users · workspaces",
+      "pos": [
+        120,
+        120
+      ],
+      "size": [
+        190,
+        80
+      ],
+      "tag": "owner 默认角色"
+    },
+    {
+      "id": "eval-domain",
+      "type": "database",
+      "label": "评测域",
+      "sublabel": "eval_runs",
+      "pos": [
+        470,
+        120
+      ],
+      "size": [
+        170,
+        80
+      ],
+      "tag": "result_json 指标+报告"
+    },
+    {
+      "id": "sync-domain",
+      "type": "database",
+      "label": "GitHub 同步域",
+      "sublabel": "6 张同步表",
+      "pos": [
+        810,
+        120
+      ],
+      "size": [
+        230,
+        80
+      ],
+      "tag": "(repo_id, github_id) 唯一"
+    },
+    {
+      "id": "chat-domain",
+      "type": "database",
+      "label": "对话与记忆域",
+      "sublabel": "10 张表 · 会话/消息/记忆",
+      "pos": [
+        120,
+        330
+      ],
+      "size": [
+        240,
+        90
+      ],
+      "tag": "10 张表"
+    },
+    {
+      "id": "repositories",
+      "type": "backend",
+      "label": "repositories",
+      "sublabel": "接入仓库 · checkout 模式 · 加密 token",
+      "pos": [
+        470,
+        330
+      ],
+      "size": [
+        190,
+        90
+      ]
+    },
+    {
+      "id": "rag-domain",
+      "type": "database",
+      "label": "RAG 知识域",
+      "sublabel": "4 张表 · 文档与配置",
+      "pos": [
+        810,
+        330
+      ],
+      "size": [
+        230,
+        90
+      ],
+      "tag": "每仓 KB 配置唯一"
+    },
+    {
+      "id": "wf-domain",
+      "type": "database",
+      "label": "工作流域",
+      "sublabel": "agent_workflow_runs · agent_task_runs",
+      "pos": [
+        120,
+        540
+      ],
+      "size": [
+        190,
+        80
+      ],
+      "tag": "spec + observation JSON"
+    },
+    {
+      "id": "gov-domain",
+      "type": "database",
+      "label": "治理域",
+      "sublabel": "action_drafts · audit_logs",
+      "pos": [
+        470,
+        540
+      ],
+      "size": [
+        170,
+        80
+      ],
+      "tag": "人工确认闭环"
+    },
+    {
+      "id": "code-domain",
+      "type": "database",
+      "label": "代码图谱域",
+      "sublabel": "code_symbols · code_relations",
+      "pos": [
+        810,
+        540
+      ],
+      "size": [
+        230,
+        80
+      ],
+      "tag": "branch / PR 双维度"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "PostgreSQL · SQLAlchemy ORM（启动自动建表 + advisory lock 迁移）",
+      "wraps": [
+        "users-domain",
+        "eval-domain",
+        "sync-domain",
+        "chat-domain",
+        "repositories",
+        "rag-domain",
+        "wf-domain",
+        "gov-domain",
+        "code-domain"
+      ],
+      "pad": 28
+    }
+  ],
+  "connections": [
+    {
+      "id": "repos-sync",
+      "from": "repositories",
+      "to": "sync-domain",
+      "label": "1:N 级联删除",
+      "variant": "emphasis"
+    },
+    {
+      "id": "repos-chat",
+      "from": "repositories",
+      "to": "chat-domain",
+      "label": "repo_id FK"
+    },
+    {
+      "id": "repos-rag",
+      "from": "repositories",
+      "to": "rag-domain",
+      "label": "repo 隔离"
+    },
+    {
+      "id": "repos-eval",
+      "from": "repositories",
+      "to": "eval-domain",
+      "label": "评测对象",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "repos-code",
+      "from": "repositories",
+      "to": "code-domain",
+      "label": "branch / PR 维度"
+    },
+    {
+      "id": "chat-wf",
+      "from": "chat-domain",
+      "to": "wf-domain",
+      "label": "conversation_id",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "gov-users",
+      "from": "gov-domain",
+      "to": "users-domain",
+      "label": "created_by / confirmed_by",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "仓库域（核心）",
+      "items": [
+        "repositories：owner/name/full_name 唯一，provider（github / github_compatible）、api_base_url、clone_url、local_path、checkout_mode（managed / local）、加密 token、last_sync_at",
+        "project_index_states：每仓一条，项目文档索引状态机（missing / stale / building / ready / failed）与指纹",
+        "删除仓库级联清理 30+ 张表（documents 行删除即向量删除）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "同步与图谱域",
+      "items": [
+        "issues / pull_requests / workflow_runs 均带 (repo_id, github_id) 唯一约束，支持 savepoint 并发安全 upsert",
+        "pr_files 与 pr_review_comments 挂 pr_id 外键；workflow_runs 的 jobs（含 steps）存 JSON、失败日志存 logs_text",
+        "analysis_results 按 (target_type, target_id) 逻辑关联三类分析结果；code_symbols / code_relations 带 branch、commit_sha、pr_id、pr_number 全索引化维度"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "对话与记忆域",
+      "items": [
+        "chat_messages 带 conversation_id 与 tool_calls JSON；chat_sessions 封存整轮 transcript；agent_runs 记录单次执行轨迹",
+        "thread_memories（repo 级）与 conversation_memories（会话级）各存 facts / tasks / preferences / citations 投影",
+        "evidence_items 是检索证据缓存；recall_events 审计每次召回与工具调用；memory_candidates 待人工审定的记忆候选"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "RAG / 评测 / 治理域",
+      "items": [
+        "documents 是切片事实源：文本 + 元数据 + pgvector 向量列（HNSW 余弦索引）同库存储，无独立向量库",
+        "eval_runs.result_json 保存指标、逐题轨迹、检索证据与 Markdown 报告",
+        "action_drafts.pending_confirmation → executed / failed，写 GitHub 但本地失败仍标 executed 防重复；audit_logs 记录全部敏感操作"
+      ]
+    }
+  ]
+}
