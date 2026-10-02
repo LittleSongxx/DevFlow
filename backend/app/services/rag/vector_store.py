@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -77,11 +77,15 @@ def _pgvector_ready() -> tuple[bool, str | None]:
             extension = session.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")).first()
             if extension is None:
                 return False, "pgvector extension is not installed; run database migrations"
-            inspector = inspect(session.bind)
-            if "documents" not in inspector.get_table_names():
-                return False, "documents table is missing; run database migrations"
-            columns = {column["name"] for column in inspector.get_columns("documents")}
-            if "embedding" not in columns:
+            # 用 pg_attribute 查列存在性：SQLAlchemy 反射不识别 vector 类型会刷 SAWarning。
+            column = session.execute(
+                text(
+                    "SELECT 1 FROM pg_attribute a "
+                    "WHERE a.attrelid = 'documents'::regclass AND a.attname = 'embedding' "
+                    "AND NOT a.attisdropped"
+                )
+            ).first()
+            if column is None:
                 return False, "documents.embedding column is missing; run database migrations"
     except Exception as exc:  # pragma: no cover - 依赖本地基础设施。
         return False, f"failed to inspect vector store: {exc}"

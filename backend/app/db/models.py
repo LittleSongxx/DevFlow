@@ -19,6 +19,8 @@ class EmbeddingVector(UserDefinedType):
     （SQLite 测试 / 本地演示）退化为 JSON 文本存储，不参与向量检索。
     """
 
+    cache_ok = True
+
     def get_col_spec(self) -> str:
         return f"vector({settings.embedding_dimensions})"
 
